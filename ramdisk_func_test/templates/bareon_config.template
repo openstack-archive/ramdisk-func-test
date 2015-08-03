@@ -1,0 +1,5 @@
+default deploy
+label deploy
+kernel {{ kernel }}
+append initrd={{ ramdisk }} rootdelay=15  text nofb nomodeset vga=normal deployment_id={{ deployment_id }} api-url={{ api_url }}
+ipappend 2
