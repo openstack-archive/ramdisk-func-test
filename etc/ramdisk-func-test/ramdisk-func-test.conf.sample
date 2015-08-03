@@ -1,0 +1,38 @@
+[DEFAULT]
+
+# Path where virtualized node disks will be stored
+#ramdisk_func_test_workdir = /tmp/ramdisk-func-test/
+
+# Time to wait slave node to boot (seconds)
+#node_boot_timeout=360
+
+# A path where images from DIB will be build. Expected
+# build artifacts are: kernel, ramdisk, ramdisk_key
+#image_build_dir = /tmp/rft_image_build
+
+#A path where mock web-server will take tenant images .
+#tenant_images_dir = /tmp/rft_golden_images
+
+# Name of kernel image
+#kernel = vmlinuz
+
+# Name of ramdisk image
+#ramdisk = initramfs
+
+# Name of private ssh key to access ramdisk
+#ramdisk_key = fuel_key
+
+# URL of qemu server
+#qemu_url = qemu:///system
+
+# Head octets for libvirt network (choose free one).
+#libvirt_net_head_octets = 192.168
+
+# Libvirt network DHCP range start.
+#libvirt_net_range_start = 100
+
+# Libvirt network DHCP range end.
+#libvirt_net_range_end = 254
+
+# Libvirt machine type (see 'qemu-system-x86_64 -machine help')
+# libvirt_machine_type=''
