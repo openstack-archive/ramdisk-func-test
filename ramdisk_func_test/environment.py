@@ -23,6 +23,7 @@ import sh
 
 from oslo_config import cfg
 
+from ramdisk_func_test import conf
 from ramdisk_func_test import utils
 from ramdisk_func_test.base import TemplateEngine
 from ramdisk_func_test.base import ABS_PATH
@@ -30,7 +31,8 @@ from ramdisk_func_test.network import Network
 from ramdisk_func_test.node import Node
 
 
-opts = [
+CONF = conf.CONF
+CONF.register_opts([
     cfg.StrOpt('image_build_dir',
                default="/tmp/rft_image_build",
                help='A path where images from DIB will be build. Expected '
@@ -51,10 +53,7 @@ opts = [
     cfg.StrOpt('pxelinux',
                default='/usr/share/syslinux/pxelinux.0',
                help='Path to pxelinux.0 file')
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts)
+])
 CONF.import_opt('ramdisk_func_test_workdir', 'ramdisk_func_test.utils')
 
 LOG = logging.getLogger(__name__)

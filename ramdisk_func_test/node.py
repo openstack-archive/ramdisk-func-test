@@ -23,10 +23,13 @@ from lxml import etree
 
 from oslo_config import cfg
 
+from ramdisk_func_test import conf
 from ramdisk_func_test import utils
 from ramdisk_func_test.base import LibvirtBase
 
-opts = [
+
+CONF = conf.CONF
+CONF.register_opts([
     cfg.IntOpt('node_boot_timeout',
                help='Time to wait slave node to boot (seconds)',
                default=360),
@@ -34,10 +37,7 @@ opts = [
                default='',
                help='Libvirt machine type (apply if it is not set in '
                     'template)'),
-
-]
-CONF = cfg.CONF
-CONF.register_opts(opts)
+])
 CONF.import_opt('ramdisk_func_test_workdir', 'ramdisk_func_test.utils')
 
 LOG = logging.getLogger(__name__)

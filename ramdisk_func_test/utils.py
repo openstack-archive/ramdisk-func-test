@@ -13,27 +13,27 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ConfigParser
 import os
 import logging
 import shutil
 import random
 import socket
+from subprocess import check_output
 from time import time
 from time import sleep
 
 from oslo_config import cfg
-from subprocess import check_output
 
-import ConfigParser
+from ramdisk_func_test import conf
 
 
-opts = [
+CONF = conf.CONF
+CONF.register_opts([
     cfg.StrOpt('ramdisk_func_test_workdir',
                help='Path where virtualized node disks will be stored.',
                default="/tmp/ramdisk-func-test/"),
-]
-CONF = cfg.CONF
-CONF.register_opts(opts)
+])
 
 LOG = logging.getLogger(__name__)
 

@@ -24,12 +24,11 @@ import sys
 import traceback
 import re
 
-from oslo_config import cfg
-
+import ramdisk_func_test
 from ramdisk_func_test.base import ABS_PATH
 
 
-CONF = cfg.CONF
+CONF = ramdisk_func_test.CONF
 LOG = logging.getLogger(__name__)
 logging.basicConfig(filename='/tmp/mock-web-server.log',
                     level=logging.DEBUG,

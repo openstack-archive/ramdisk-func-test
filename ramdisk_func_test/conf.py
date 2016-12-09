@@ -13,25 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
+from oslo_config import cfg
 
-from ramdisk_func_test import conf
+PROJECT_NAME = 'ramdisk-func-test'
+CONF_FILE = '/etc/ramdisk-func-test/ramdisk-func-test.conf'
 
-
-LOG = logging.getLogger(__name__)
-
-
-def _init():
-    LOG.debug('Load ramdisk-func-test configuration')
-    conf.CONF(
-        [], project=conf.PROJECT_NAME, default_config_files=[conf.CONF_FILE])
-
-    # configure log level for libs we are using
-    for channel, level in [
-            ('paramiko', logging.WARN),
-            ('ironic.openstack.common', logging.WARN)]:
-        logger = logging.getLogger(channel)
-        logger.setLevel(level)
-
-
-_init()
+CONF = cfg.ConfigOpts()
