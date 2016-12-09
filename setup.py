@@ -22,6 +22,10 @@ setup(
     classifiers=[
         'Programming Language :: Python :: 2.7',
     ],
+    entry_points={
+        'console_scripts':
+            'ramdisk-stub-webserver = ramdisk_func_test.webserver:main'
+    },
     install_requires=[
         'stevedore>=1.3.0,<1.4.0', # Not used. Prevents pip dependency conflict.
         # This corresponds to openstack global-requirements.txt
@@ -31,6 +35,9 @@ setup(
         'pyyaml',
         'sh',
     ],
+    package_data={
+        'ramdisk_func_test.webserver': ['data/*']
+    },
     url='',
     license='Apache License, Version 2.0',
     author='',
