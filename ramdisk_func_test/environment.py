@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import errno
 import os
 import shutil
 import subprocess
@@ -26,7 +27,6 @@ from oslo_config import cfg
 from ramdisk_func_test import conf
 from ramdisk_func_test import utils
 from ramdisk_func_test.base import TemplateEngine
-from ramdisk_func_test.base import ABS_PATH
 from ramdisk_func_test.network import Network
 from ramdisk_func_test.node import Node
 
@@ -160,10 +160,8 @@ class Environment(object):
                                                   self.tenant_images_dir))
 
         # TODO(max_lobur) make webserver singletone
-        self.webserver = subprocess.Popen(
-            ['python',
-             os.path.join(ABS_PATH, 'webserver/server.py'),
-             self.network.address, port, self.tenant_images_dir], shell=False)
+        cmd = ['ramdisk-stub-webserver', self.network.address, port]
+        self.webserver = subprocess.Popen(cmd, shell=False)
 
     def get_url_for_image(self, image_name, source_type):
         if source_type == 'swift':
@@ -208,14 +206,23 @@ class Environment(object):
 
     def _teardown_webserver(self):
         LOG.info("Stopping stub web server ...")
-        self.webserver.terminate()
-
-        for i in range(0, 15):
-            if self.webserver.poll() is not None:
-                LOG.info("Stub web server has stopped.")
+        try:
+            self.webserver.terminate()
+            for i in range(0, 15):
+                if self.webserver.poll() is not None:
+                    LOG.info("Stub web server has stopped.")
+                    break
+                time.sleep(1)
+            else:
+                LOG.warning(
+                    '15 seconds have passed since sending SIGTERM to the stub '
+                    'web server. It is still alive. Send SIGKILL.')
+                self.webserver.kill()
+                self.webserver.wait()  # collect zombie
+        except OSError as e:
+            if e.errno == errno.ESRCH:
                 return
-            time.sleep(1)
-        LOG.warning("Cannot terminate web server in 15 sec!")
+            raise
 
     def _delete_workdir(self):
         LOG.info("Deleting workdir {0}".format(CONF.ramdisk_func_test_workdir))
