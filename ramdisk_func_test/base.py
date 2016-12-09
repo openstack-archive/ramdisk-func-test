@@ -16,47 +16,22 @@
 import logging
 import uuid
 import os
-import sys
 
 import libvirt
 import jinja2
 
 from oslo_config import cfg
 
+from ramdisk_func_test import conf
 import utils
 
 
-def _setup_config():
-    cfg.CONF([], default_config_files=[
-        "/etc/ramdisk-func-test/ramdisk-func-test.conf"])
-
-
-def _setup_loggging():
-    for pair in [
-        'paramiko=WARN',
-        'ironic.openstack.common=WARN',
-    ]:
-        mod, _sep, level_name = pair.partition('=')
-        logger = logging.getLogger(mod)
-        # NOTE(AAzza) in python2.6 Logger.setLevel doesn't convert string name
-        # to integer code.
-        if sys.version_info < (2, 7):
-            level = logging.getLevelName(level_name)
-            logger.setLevel(level)
-        else:
-            logger.setLevel(level_name)
-
-
-_setup_config()
-_setup_loggging()
-
-opts = [
+CONF = conf.CONF
+CONF.register_opts([
     cfg.StrOpt('qemu_url',
                help='URL of qemu server.',
                default="qemu:///system"),
-]
-CONF = cfg.CONF
-CONF.register_opts(opts)
+])
 
 LOG = logging.getLogger(__name__)
 

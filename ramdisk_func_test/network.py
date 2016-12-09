@@ -20,12 +20,13 @@ import libvirt
 
 from oslo_config import cfg
 
+from ramdisk_func_test import conf
 from ramdisk_func_test import utils
 from ramdisk_func_test.base import LibvirtBase
 
-LOG = logging.getLogger(__name__)
 
-opts = [
+CONF = conf.CONF
+CONF.register_opts([
     cfg.StrOpt('libvirt_net_head_octets',
                default="192.168",
                help='Head octets for libvirt network (choose free one).'),
@@ -35,11 +36,10 @@ opts = [
     cfg.IntOpt('libvirt_net_range_end',
                default=254,
                help='Libvirt network DHCP range end.')
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts)
+])
 CONF.import_opt('ramdisk_func_test_workdir', 'ramdisk_func_test.utils')
+
+LOG = logging.getLogger(__name__)
 
 
 class Network(LibvirtBase):

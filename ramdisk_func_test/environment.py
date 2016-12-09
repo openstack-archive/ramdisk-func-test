@@ -23,6 +23,7 @@ import sh
 
 from oslo_config import cfg
 
+from ramdisk_func_test import conf
 from ramdisk_func_test import utils
 from ramdisk_func_test.base import TemplateEngine
 from ramdisk_func_test.base import ABS_PATH
@@ -30,7 +31,8 @@ from ramdisk_func_test.network import Network
 from ramdisk_func_test.node import Node
 
 
-opts = [
+CONF = conf.CONF
+CONF.register_opts([
     cfg.StrOpt('image_build_dir',
                default="/tmp/rft_image_build",
                help='A path where images from DIB will be build. Expected '
@@ -50,20 +52,20 @@ opts = [
     # NOTE(oberezovskyi): path from Centos 7 taken as default
     cfg.StrOpt('pxelinux',
                default='/usr/share/syslinux/pxelinux.0',
-               help='Path to pxelinux.0 file')
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts)
+               help='Path to pxelinux.0 file'),
+    cfg.IntOpt('stub_webserver_port',
+               default=8011,
+               help='The port used by stub webserver')
+])
 CONF.import_opt('ramdisk_func_test_workdir', 'ramdisk_func_test.utils')
 
 LOG = logging.getLogger(__name__)
 
 
 class Environment(object):
-    HTTP_PORT = "8011"
+    _loaded_config = object()  # to fail comparison with None
 
-    def __init__(self, node_templates):
+    def __init__(self, node_templates, config=None):
         super(Environment, self).__init__()
         self.templ_eng = TemplateEngine(node_templates)
 
@@ -73,6 +75,8 @@ class Environment(object):
         self.tenant_images_dir = None
         self.rsync_dir = None
         self.image_mount_point = None
+
+        self._load_config(config)
 
     def setupclass(self):
         """Global setup - single for all tests"""
@@ -138,7 +142,7 @@ class Environment(object):
             ramdisk=CONF.ramdisk,
             deployment_id=self.node.name,
             api_url="http://{0}:{1}".format(self.network.address,
-                                            self.HTTP_PORT)
+                                            CONF.stub_webserver_port)
         )
 
         pxe_path = os.path.join(tftp_root, "pxelinux.cfg")
@@ -149,11 +153,10 @@ class Environment(object):
         with open(conf_path, 'w') as f:
             f.write(pxe_config)
 
-    def _setup_webserver(self, port=HTTP_PORT):
-
+    def _setup_webserver(self):
+        port = CONF.stub_webserver_port
         LOG.info("Starting stub webserver (at IP {0} port {1}, path to tenant "
-                 "images folder is '{2}')".format(self.network.address,
-                                                  port,
+                 "images folder is '{2}')".format(self.network.address, port,
                                                   self.tenant_images_dir))
 
         # TODO(max_lobur) make webserver singletone
@@ -172,11 +175,12 @@ class Environment(object):
 
     def get_url_for_stub_image(self):
         return "http://{0}:{1}/fake".format(self.network.address,
-                                            self.HTTP_PORT)
+                                            CONF.stub_webserver_port)
 
     def _get_swift_tenant_image_url(self, image_name):
-        return ("http://{0}:{1}/tenant_images/"
-                "{2}".format(self.network.address, self.HTTP_PORT, image_name))
+        return (
+            'http://{0}:{1}/tenant_images/{2}'.format(
+                self.network.address, CONF.stub_webserver_port, image_name))
 
     def _get_rsync_tenant_image_url(self, image_name):
         url = "{0}::ironic_rsync/{1}/".format(self.network.address,
@@ -247,3 +251,23 @@ class Environment(object):
         if self.image_mount_point:
             sh.sudo.umount(self.image_mount_point)
             sh.rmdir(self.image_mount_point)
+
+    @classmethod
+    def _load_config(cls, path):
+        if cls._loaded_config == path:
+            return
+
+        LOG.debug('Load ramdisk-func-test configuration')
+        args = {}
+        if path:
+            args['default_config_files'] = [path]
+        conf.CONF([], project=conf.PROJECT_NAME, **args)
+
+        # configure log level for libs we are using
+        for channel, level in [
+                ('paramiko', logging.WARN),
+                ('ironic.openstack.common', logging.WARN)]:
+            logger = logging.getLogger(channel)
+            logger.setLevel(level)
+
+        cls._loaded_config = path
