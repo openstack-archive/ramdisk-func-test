@@ -13,12 +13,57 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import logging
+import unittest
 
 from ramdisk_func_test import conf
+from ramdisk_func_test import environment
 
+
+__all__ = ['TestCaseMixin']
 
 LOG = logging.getLogger(__name__)
+
+
+class TestCaseMixin(unittest.TestCase):
+    _rft_template_path = []
+    env = None
+
+    @classmethod
+    def setUpClass(cls):
+        template_path = []
+        template_uniq = set()
+        for member in cls.__mro__:
+            try:
+                path = member._rft_template_path
+            except AttributeError:
+                continue
+
+            if isinstance(path, basestring):
+                path = [path]
+            elif isinstance(path, collections.Sequence):
+                pass
+            else:
+                path = [path]
+
+            uniq_path = set(path) - template_uniq
+            template_uniq.update(uniq_path)
+            template_path.extend(x for x in path if x in uniq_path)
+
+        cls.env = environment.Environment(template_path)
+        cls.env.setupclass()
+
+        super(TestCaseMixin, cls).setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.env.teardownclass()
+        super(TestCaseMixin, cls).tearDownClass()
+
+    def tearDown(self):
+        self.env.teardown()
+        super(TestCaseMixin, self).tearDown()
 
 
 def _init():
