@@ -1,5 +1,5 @@
 default deploy
 label deploy
 kernel {{ kernel }}
-append initrd={{ ramdisk }} rootdelay=15  text nofb nomodeset vga=normal deployment_id={{ deployment_id }} api-url={{ api_url }}
+append initrd={{ ramdisk }} rootdelay=15  text nofb nomodeset vga=normal deployment_id={{ deployment_id }} api-url={{ api_url }} bareon-public-key={{ key_path }}
 ipappend 2
