@@ -312,7 +312,11 @@ class Environment(object):
 
     def _delete_workdir(self):
         LOG.info("Deleting workdir {0}".format(CONF.ramdisk_func_test_workdir))
-        shutil.rmtree(CONF.ramdisk_func_test_workdir)
+        try:
+            shutil.rmtree(CONF.ramdisk_func_test_workdir)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
 
     def _delete_node_workdir(self, node):
         wdir = node.workdir
