@@ -22,13 +22,15 @@ import logging
 import time
 import sh
 
+import jinja2
+import pkg_resources
 from oslo_config import cfg
 
+import ramdisk_func_test
 from ramdisk_func_test import conf
+from ramdisk_func_test import network
+from ramdisk_func_test import node
 from ramdisk_func_test import utils
-from ramdisk_func_test.base import TemplateEngine
-from ramdisk_func_test.network import Network
-from ramdisk_func_test.node import Node
 
 
 CONF = conf.CONF
@@ -65,22 +67,35 @@ LOG = logging.getLogger(__name__)
 class Environment(object):
     _loaded_config = object()  # to fail comparison with None
 
-    def __init__(self, node_templates, config=None):
+    node = None
+    network = None
+    webserver = None
+    rsync_dir = None
+    image_mount_point = None
+
+    def __init__(self, template_path, config=None):
         super(Environment, self).__init__()
-        self.templ_eng = TemplateEngine(node_templates)
-
-        self.node = None
-        self.network = None
-        self.webserver = None
-        self.tenant_images_dir = None
-        self.rsync_dir = None
-        self.image_mount_point = None
-
         self._load_config(config)
+        self.jinja_env = self._init_jinja2(template_path)
+
+    @staticmethod
+    def _init_jinja2(path):
+        path = path[:]
+        path.append(pkg_resources.resource_filename(
+            ramdisk_func_test.__name__, 'templates'))
+        loader = jinja2.FileSystemLoader(path)
+        jinja_env = jinja2.Environment(loader=loader)
+
+        # Custom template callbacks
+        jinja_env.globals['empty_disk'] = utils.create_empty_disk
+        jinja_env.globals['disk_from_base'] = utils.create_disk_from_base
+        jinja_env.globals['get_rand_mac'] = utils.get_random_mac
+
+        return jinja_env
 
     def setupclass(self):
         """Global setup - single for all tests"""
-        self.network = Network(self.templ_eng)
+        self.network = network.Network(self.jinja_env)
         self.network.start()
 
         self.tenant_images_dir = CONF.tenant_images_dir
@@ -92,10 +107,8 @@ class Environment(object):
     def setup(self, node_template, deploy_config):
         """Per-test setup"""
         ssh_key_path = os.path.join(CONF.image_build_dir, CONF.ramdisk_key)
-        self.node = Node(self.templ_eng,
-                         node_template,
-                         self.network.name,
-                         ssh_key_path)
+        self.node = node.Node(
+            self.jinja_env, node_template, self.network.name, ssh_key_path)
 
         self.add_pxe_config_for_current_node()
         self.network.add_node(self.node)
@@ -136,8 +149,8 @@ class Environment(object):
 
         tftp_root = self.network.tftp_root
 
-        pxe_config = self.templ_eng.render_template(
-            'bareon_config.template',
+        template = self.jinja_env.get_template('bareon_config.template')
+        pxe_config = template.render(
             kernel=CONF.kernel,
             ramdisk=CONF.ramdisk,
             deployment_id=self.node.name,
