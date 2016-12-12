@@ -22,6 +22,7 @@ import logging
 import time
 import sh
 
+from Crypto.PublicKey import RSA
 import jinja2
 import pkg_resources
 from oslo_config import cfg
@@ -110,7 +111,8 @@ class Environment(object):
         self.node = node.Node(
             self.jinja_env, node_template, self.network.name, ssh_key_path)
 
-        self.add_pxe_config_for_current_node()
+        public_key = self._generate_fuel_ssh_key_pair()
+        self.add_pxe_config_for_current_node(public_key)
         self.network.add_node(self.node)
 
         path = self._save_provision_json_for_node(deploy_config)
@@ -143,8 +145,26 @@ class Environment(object):
         utils.copy_file(os.path.join(img_build, CONF.kernel), tftp_root)
         utils.copy_file(os.path.join(img_build, CONF.ramdisk), tftp_root)
 
-    def add_pxe_config_for_current_node(self):
-        LOG.info("Setting up PXE configuration file fo node {0}".format(
+    def _generate_fuel_ssh_key_pair(self):
+        LOG.info("Generating SSH key pair for node {0}".format(
+            self.node.name))
+
+        key = RSA.generate(4096)
+
+        path_private = os.path.join(CONF.image_build_dir, CONF.ramdisk_key)
+        path_public = os.path.join(self.network.tftp_root, 'fuel_key.pub')
+
+        for path, payload, mode in (
+                (path_private, key.exportKey('PEM'), 0o600),
+                (path_public, key.publickey().exportKey('OpenSSH'), 0o644)):
+            with open(path, 'wt') as f:
+                os.chmod(path, mode)
+                f.write(payload)
+
+        return path_public
+
+    def add_pxe_config_for_current_node(self, public_key):
+        LOG.info("Setting up PXE configuration file for node {0}".format(
             self.node.name))
 
         tftp_root = self.network.tftp_root
@@ -154,9 +174,9 @@ class Environment(object):
             kernel=CONF.kernel,
             ramdisk=CONF.ramdisk,
             deployment_id=self.node.name,
-            api_url="http://{0}:{1}".format(self.network.address,
-                                            CONF.stub_webserver_port)
-        )
+            network=self.network,
+            ssh_key_path=CONF.stub_webserver_port,
+            stub_server_port=self.HTTP_PORT)
 
         pxe_path = os.path.join(tftp_root, "pxelinux.cfg")
         utils.ensure_tree(pxe_path)
