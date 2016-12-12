@@ -68,6 +68,7 @@ LOG = logging.getLogger(__name__)
 class Environment(object):
     _loaded_config = object()  # to fail comparison with None
 
+    deploy_driver = None
     node = None
     network = None
     webserver = None
@@ -99,14 +100,14 @@ class Environment(object):
         self.network = network.Network(self.jinja_env)
         self.network.start()
 
-        self.tenant_images_dir = CONF.tenant_images_dir
-
         self._setup_webserver()
         self._check_rsync()
         self._setup_pxe()
 
-    def setup(self, node_template, deploy_config):
+    def setup(self, node_template, deploy_config, tenant_image=None,
+              deploy_driver='swift'):
         """Per-test setup"""
+        self.deploy_driver = deploy_driver
         ssh_key_path = os.path.join(CONF.image_build_dir, CONF.ramdisk_key)
         self.node = node.Node(
             self.jinja_env, node_template, self.network.name, ssh_key_path)
@@ -116,11 +117,11 @@ class Environment(object):
         self.add_pxe_config_for_current_node(public_key)
         self.network.add_node(self.node)
 
+        deploy_config = self._set_tenant_image(deploy_config, tenant_image)
         path = self._save_provision_json_for_node(deploy_config)
 
         self.node.start()
         self.node.wait_for_callback()
-
         self.node.put_file(path, '/tmp/provision.json')
 
     def teardown(self):
@@ -207,6 +208,44 @@ class Environment(object):
         cmd = ['ramdisk-stub-webserver', self.network.address, port]
         self.webserver = subprocess.Popen(cmd, shell=False)
 
+    def _set_tenant_image(self, deploy_config, image_name=None):
+        if isinstance(image_name, basestring):
+            images = self._set_single_tenant_image(image_name)
+        elif isinstance(image_name, dict):
+            images = self._set_multiple_tenant_image(image_name)
+        else:
+            images = self._set_image_stub()
+
+        deploy_config['images'] = images
+        return deploy_config
+
+    def _set_single_tenant_image(self, image_name=None, os_id=None, boot=True):
+        return [{
+            "name": os_id or image_name,
+            "boot": boot,
+            "target": '/',
+            "image_pull_url": self.get_url_for_image(
+                image_name, self.deploy_driver),
+        }]
+
+    def _set_image_stub(self):
+        return [{
+            "name": "FAKE",
+            "boot": True,
+            "target": '/',
+            "image_pull_url": "http://{0}:{1}/fake".format(
+                self.network.address, self.HTTP_PORT),
+        }]
+
+    def _set_multiple_tenant_image(self, image_names):
+        images = []
+        for index, element in enumerate(image_names.items()):
+            os_id, image_name = element
+            boot = True if index == 0 else False
+            image_data = self._set_single_tenant_image(image_name, os_id, boot)
+            images.append(image_data[0])
+        return images
+
     def get_url_for_image(self, image_name, source_type):
         if source_type == 'swift':
             return self._get_swift_tenant_image_url(image_name)
@@ -227,7 +266,14 @@ class Environment(object):
     def _get_rsync_tenant_image_url(self, image_name):
         url = "{0}::ironic_rsync/{1}/".format(self.network.address,
                                               image_name)
-        image_path = os.path.join(self.tenant_images_dir, image_name)
+        if self.image_mount_point:
+            # Image already mounted.
+            if not os.path.exists(
+                    os.path.join(self.image_mount_point, 'etc/passwd')):
+                raise Exception('Previously mounted image no longer present')
+            return url
+
+        image_path = os.path.join(CONF.tenant_images_dir, image_name)
         if os.path.exists(image_path):
             image_mount_point = os.path.join(self.rsync_dir, image_name)
             self.image_mount_point = image_mount_point
@@ -238,7 +284,7 @@ class Environment(object):
                 raise Exception('Mounting of image did not happen')
         else:
             raise Exception("There is no such file '{0}' in '{1}'".format(
-                image_name, self.tenant_images_dir))
+                            image_name, CONF.tenant_images_dir))
         return url
 
     def _save_provision_json_for_node(self, deploy_config):
