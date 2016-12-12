@@ -15,15 +15,11 @@
 
 import logging
 import uuid
-import os
 
 import libvirt
-import jinja2
-
 from oslo_config import cfg
 
 from ramdisk_func_test import conf
-import utils
 
 
 CONF = conf.CONF
@@ -35,16 +31,14 @@ CONF.register_opts([
 
 LOG = logging.getLogger(__name__)
 
-ABS_PATH = os.path.dirname(os.path.abspath(__file__))
-
 
 class LibvirtBase(object):
     """Generic wrapper for libvirt domain objects."""
     libvirt = libvirt.open(CONF.qemu_url)
 
-    def __init__(self, templ_engine):
+    def __init__(self, jinja_env):
         super(LibvirtBase, self).__init__()
-        self.templ_engine = templ_engine
+        self.jinja_env = jinja_env
         # Initialized in child classes
         self.name = None
         self.domain = None
@@ -79,22 +73,3 @@ class LibvirtBase(object):
                 LOG.warning("Error during domain '{0}' call:\n{1}".format(
                     call, err.message
                 ))
-
-
-class TemplateEngine(object):
-    def __init__(self, node_templates):
-        super(TemplateEngine, self).__init__()
-        loader = jinja2.FileSystemLoader([
-            node_templates,
-            os.path.join(ABS_PATH, "templates")
-        ])
-        self._jinja = jinja2.Environment(loader=loader)
-
-        # Custom template callbacks
-        self._jinja.globals['empty_disk'] = utils.create_empty_disk
-        self._jinja.globals['disk_from_base'] = utils.create_disk_from_base
-        self._jinja.globals['get_rand_mac'] = utils.get_random_mac
-
-    def render_template(self, template_name, **kwargs):
-        template = self._jinja.get_template(template_name)
-        return template.render(**kwargs)

@@ -20,9 +20,9 @@ import libvirt
 
 from oslo_config import cfg
 
+from ramdisk_func_test import base
 from ramdisk_func_test import conf
 from ramdisk_func_test import utils
-from ramdisk_func_test.base import LibvirtBase
 
 
 CONF = conf.CONF
@@ -42,9 +42,9 @@ CONF.import_opt('ramdisk_func_test_workdir', 'ramdisk_func_test.utils')
 LOG = logging.getLogger(__name__)
 
 
-class Network(LibvirtBase):
-    def __init__(self, templ_engine):
-        super(Network, self).__init__(templ_engine)
+class Network(base.LibvirtBase):
+    def __init__(self, jinja_env):
+        super(Network, self).__init__(jinja_env)
 
         self.name = self._generate_name("net")
         head_octets = CONF.libvirt_net_head_octets
@@ -57,8 +57,7 @@ class Network(LibvirtBase):
                                       'tftp_root')
         utils.ensure_tree(self.tftp_root)
 
-        xml = self.templ_engine.render_template(
-            'network.xml',
+        xml = self.jinja_env.get_template('network.xml').render(
             name=self.name,
             bridge=self._generate_name("br"),
             address=self.address,

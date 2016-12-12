@@ -37,6 +37,7 @@ setup(
         'lxml>=2.3'
     ],
     package_data={
+        'ramdisk_func_test': ['templates/*'],
         'ramdisk_func_test.webserver': ['data/*']
     },
     url='',
