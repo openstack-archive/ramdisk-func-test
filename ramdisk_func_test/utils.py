@@ -123,4 +123,6 @@ def read_config(path):
 
 
 def _pid_of(name):
-    return check_output(["pidof", name]).rstrip()
+    cmd = ['ps', '-o', 'pid=', '-C', name]
+    pidset = check_output(cmd).rstrip()
+    return [(int(x) for x in pidset.splitlines())]
