@@ -123,6 +123,12 @@ class Environment(object):
         self.node.wait_for_callback()
         self.node.put_file(path, '/tmp/provision.json')
 
+    def init_unlabelled_disk(self, path='/tmp/vdc'):
+        """Create/format an unlabelled disk"""
+        subprocess.check_call(
+            'sudo /usr/bin/qemu-img create -f qcow2 -o '
+            'preallocation=metadata %s 1M' % path, shell=True)
+
     def teardown(self):
         """Per-test teardown"""
         self.network.remove_node(self.node)
@@ -137,6 +143,11 @@ class Environment(object):
 
         self.network.kill()
         self._delete_workdir()
+
+    def update_deploy_config(self, deploy_config, tenant_image=None):
+        deploy_config = self._set_tenant_image(deploy_config, tenant_image)
+        path = self._save_provision_json_for_node(deploy_config)
+        self.node.put_file(path, '/tmp/provision.json')
 
     def _setup_pxe(self):
         LOG.info("Setting up PXE configuration/images")
