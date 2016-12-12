@@ -112,6 +112,7 @@ class Environment(object):
             self.jinja_env, node_template, self.network.name, ssh_key_path)
 
         public_key = self._generate_fuel_ssh_key_pair()
+        self._generate_cloud_config(public_key)
         self.add_pxe_config_for_current_node(public_key)
         self.network.add_node(self.node)
 
@@ -185,6 +186,16 @@ class Environment(object):
             self.node.mac.replace(':', '-')))
         with open(conf_path, 'w') as f:
             f.write(pxe_config)
+
+    def _generate_cloud_config(self, public_key):
+        """"Used to support logging into the tenant image."""
+        with open(public_key, 'r') as f:
+            key = f.readline()
+
+        template = self.jinja_env.get_template('cloud.cfg.template')
+        path = os.path.join(self.node.workdir, 'cloud.cfg')
+        with open(path, 'w') as f:
+            f.write(template.render(fuel_public_key=key))
 
     def _setup_webserver(self):
         port = CONF.stub_webserver_port
