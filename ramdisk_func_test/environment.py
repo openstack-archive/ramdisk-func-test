@@ -121,12 +121,12 @@ class Environment(object):
         self.network.remove_node(self.node)
         self.node.kill()
         self._delete_node_workdir(self.node)
+        self._teardown_rsync()
 
     def teardownclass(self):
         """Global tear down - single for all tests"""
         LOG.info("Tearing down Environment class...")
         self._teardown_webserver()
-        self._teardown_rsync()
 
         self.network.kill()
         self._delete_workdir()
@@ -266,3 +266,4 @@ class Environment(object):
         if self.image_mount_point:
             sh.sudo.umount(self.image_mount_point)
             sh.rmdir(self.image_mount_point)
+            self.image_mount_point = None
