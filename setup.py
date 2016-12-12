@@ -36,6 +36,7 @@ setup(
         'paramiko',
         'pyyaml',
         'sh',
+        'lxml>=2.3'
     ],
     package_data={
         'ramdisk_func_test.webserver': ['data/*']
