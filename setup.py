@@ -36,7 +36,8 @@ setup(
         'paramiko',
         'pyyaml',
         'sh',
-        'lxml>=2.3'
+        'lxml>=2.3',
+        'pycrypto>=2.6'
     ],
     package_data={
         'ramdisk_func_test': ['templates/*'],
