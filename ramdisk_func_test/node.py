@@ -96,7 +96,14 @@ class Node(base.LibvirtBase):
         out, ret_code = self.run_cmd(
             'mount -t {part_type} {partition} /mnt '
             '&& cat /mnt/{file} '
-            '&& umount /mnt'.format(**locals()))
+            '; umount /mnt'.format(**locals()))
+        return out
+
+    def write_file(self, partition, file, contents, part_type='ext4'):
+        out, ret_code = self.run_cmd(
+            'mount -t {part_type} {partition} /mnt '
+            '&& echo \'{contents}\' > /mnt/{file} '
+            '; umount /mnt'.format(**locals()))
         return out
 
     def run_cmd(self, cmd, check_ret_code=False, get_bareon_log=False):
