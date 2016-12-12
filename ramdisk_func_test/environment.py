@@ -49,7 +49,7 @@ CONF.register_opts([
                default='initramfs',
                help='Name of ramdisk image'),
     cfg.StrOpt('ramdisk_key',
-               default='fuel_key',
+               default='bareon_key',
                help='Name of private ssh key to access ramdisk'),
     # NOTE(oberezovskyi): path from Centos 7 taken as default
     cfg.StrOpt('pxelinux',
@@ -110,6 +110,7 @@ class Environment(object):
         self.node = node.Node(
             self.jinja_env, node_template, self.network.name, ssh_key_path)
 
+        public_key = '.'.join(ssh_key_path, 'pub')
         self.add_pxe_config_for_current_node()
         self.network.add_node(self.node)
 
@@ -144,7 +145,7 @@ class Environment(object):
         utils.copy_file(os.path.join(img_build, CONF.ramdisk), tftp_root)
 
     def add_pxe_config_for_current_node(self):
-        LOG.info("Setting up PXE configuration file fo node {0}".format(
+        LOG.info("Setting up PXE configuration file for node {0}".format(
             self.node.name))
 
         tftp_root = self.network.tftp_root
@@ -154,9 +155,8 @@ class Environment(object):
             kernel=CONF.kernel,
             ramdisk=CONF.ramdisk,
             deployment_id=self.node.name,
-            api_url="http://{0}:{1}".format(self.network.address,
-                                            CONF.stub_webserver_port)
-        )
+            network=self.network,
+            stub_server_port=CONF.stub_webserver_port)
 
         pxe_path = os.path.join(tftp_root, "pxelinux.cfg")
         utils.ensure_tree(pxe_path)
