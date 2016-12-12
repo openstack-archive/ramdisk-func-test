@@ -23,9 +23,9 @@ from lxml import etree
 
 from oslo_config import cfg
 
+from ramdisk_func_test import base
 from ramdisk_func_test import conf
 from ramdisk_func_test import utils
-from ramdisk_func_test.base import LibvirtBase
 
 
 CONF = conf.CONF
@@ -43,10 +43,9 @@ CONF.import_opt('ramdisk_func_test_workdir', 'ramdisk_func_test.utils')
 LOG = logging.getLogger(__name__)
 
 
-class Node(LibvirtBase):
-
-    def __init__(self, templ_engine, template, network, key):
-        super(Node, self).__init__(templ_engine)
+class Node(base.LibvirtBase):
+    def __init__(self, jinja_env, template, network, key):
+        super(Node, self).__init__(jinja_env)
 
         self.name = self._generate_name('node')
         self.workdir = os.path.join(CONF.ramdisk_func_test_workdir, self.name)
@@ -57,8 +56,7 @@ class Node(LibvirtBase):
         self.ssh_key = key
         self.console_log = os.path.join(self.workdir, "console.log")
 
-        xml = self.templ_engine.render_template(
-            template,
+        xml = self.jinja_env.get_template(template).render(
             mac_addr=self.mac,
             network_name=network,
             node_name=self.name,
