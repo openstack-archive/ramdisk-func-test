@@ -52,10 +52,6 @@ CONF.register_opts([
     cfg.StrOpt('ramdisk_key',
                default='bareon_key',
                help='Name of private ssh key to access ramdisk'),
-    # NOTE(oberezovskyi): path from Centos 7 taken as default
-    cfg.StrOpt('pxelinux',
-               default='/usr/share/syslinux/pxelinux.0',
-               help='Path to pxelinux.0 file'),
     cfg.IntOpt('stub_webserver_port',
                default=8011,
                help='The port used by stub webserver')
@@ -63,6 +59,13 @@ CONF.register_opts([
 CONF.import_opt('ramdisk_func_test_workdir', 'ramdisk_func_test.utils')
 
 LOG = logging.getLogger(__name__)
+
+PXELINUX_PATH = (
+    ('/usr/lib/syslinux/pxelinux.0',),
+    ('/usr/share/syslinux/pxelinux.0',  '/usr/share/syslinux/ldlinux.c32'),
+    ('/usr/lib/PXELINUX/pxelinux.0',
+     '/usr/lib/syslinux/modules/bios/ldlinux.c32',),
+)
 
 
 class Environment(object):
@@ -154,7 +157,16 @@ class Environment(object):
         LOG.info("Setting up PXE configuration/images")
         tftp_root = self.network.tftp_root
         img_build = CONF.image_build_dir
-        utils.copy_file(CONF.pxelinux, tftp_root)
+
+        for paths in PXELINUX_PATH:
+            if not os.path.exists(paths[0]):
+                continue
+            for path in paths:
+                utils.copy_file(path, tftp_root)
+            break
+        else:
+            raise errors.PXELinuxNotFound()
+
         utils.copy_file(os.path.join(img_build, CONF.kernel), tftp_root)
         utils.copy_file(os.path.join(img_build, CONF.ramdisk), tftp_root)
 
