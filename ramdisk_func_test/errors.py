@@ -59,3 +59,7 @@ class ImageNotFound(ImageError):
 
 class UnknownDeployDriver(BaseError):
     _msg = "Unknown deploy_driver."
+
+
+class PXELinuxNotFound(BaseError):
+    _msg = "No pxelinux.0 found in provided paths."
