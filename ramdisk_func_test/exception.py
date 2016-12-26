@@ -79,3 +79,7 @@ class NonZeroCmdRetCode(RamDiskTestException):
 
 class VacantNetworkNotFound(RamDiskTestException):
     _msg = "Cannot find free libvirt net in %(head)s."
+
+
+class PXELinuxNotFound(RamDiskTestException):
+    _msg = "Network boot program files not found in any of provided locations."
