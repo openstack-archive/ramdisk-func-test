@@ -55,6 +55,9 @@ CONF.register_opts([
     cfg.StrOpt('pxelinux',
                default='/usr/share/syslinux/pxelinux.0',
                help='Path to pxelinux.0 file'),
+    cfg.StrOpt('ldlinux',
+               default='/usr/lib/syslinux/modules/bios/ldlinux.c32',
+               help='Path to ldlinux.c32 for deb pxelinux>=5.x compatibility'),
     cfg.IntOpt('stub_webserver_port',
                default=8011,
                help='The port used by stub webserver')
@@ -154,6 +157,8 @@ class Environment(object):
         tftp_root = self.network.tftp_root
         img_build = CONF.image_build_dir
         utils.copy_file(CONF.pxelinux, tftp_root)
+        if 'Ubuntu' in platform.dist():
+            utils.copy_file(CONF.ldlinux, tftp_root)
         utils.copy_file(os.path.join(img_build, CONF.kernel), tftp_root)
         utils.copy_file(os.path.join(img_build, CONF.ramdisk), tftp_root)
 
