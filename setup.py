@@ -29,12 +29,12 @@ setup(
             'ramdisk-stub-webserver = ramdisk_func_test.webserver:main'
     },
     install_requires=[
-        'stevedore>=1.3.0,<1.4.0', # Not used. Prevents pip dependency conflict.
+        'stevedore>=1.16.0', # Not used. Prevents pip dependency conflict.
         # This corresponds to openstack global-requirements.txt
-        'oslo.config>=1.9.3,<1.10.0',
-        'Jinja2==2.7.3',
-        'paramiko',
-        'pyyaml',
+        'oslo.config>=3.14.0',
+        'Jinja2>=2.8',
+        'paramiko>=2.0',
+        'PyYAML>=3.1.0',
         'sh',
         'lxml>=2.3'
     ],
