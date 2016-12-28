@@ -22,6 +22,7 @@ from oslo_config import cfg
 
 from ramdisk_func_test import base
 from ramdisk_func_test import conf
+from ramdisk_func_test import errors
 from ramdisk_func_test import utils
 
 
@@ -110,4 +111,4 @@ class Network(base.LibvirtBase):
             unique = all([pattern not in net_xml for net_xml in existing_nets])
             if unique:
                 return pattern
-        raise Exception("Cannot find free libvirt net in {0}".format(head))
+        raise errors.VacantNetworkNotFound(head=head)

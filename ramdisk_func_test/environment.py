@@ -28,6 +28,7 @@ from oslo_config import cfg
 
 import ramdisk_func_test
 from ramdisk_func_test import conf
+from ramdisk_func_test import errors
 from ramdisk_func_test import network
 from ramdisk_func_test import node
 from ramdisk_func_test import utils
@@ -243,7 +244,7 @@ class Environment(object):
         elif source_type == 'rsync':
             return self._get_rsync_tenant_image_url(image_name)
         else:
-            raise Exception("Unknown deploy_driver")
+            raise errors.UnknownDeployDriver()
 
     def get_url_for_stub_image(self):
         return "http://{0}:{1}/fake".format(self.network.address,
@@ -261,7 +262,8 @@ class Environment(object):
             # Image already mounted.
             if not os.path.exists(
                     os.path.join(self.image_mount_point, 'etc/passwd')):
-                raise Exception('Previously mounted image no longer present')
+                raise errors.ImageMountError(
+                    'Previously mounted image no longer present.')
             return url
 
         image_path = os.path.join(CONF.tenant_images_dir, image_name)
@@ -272,10 +274,10 @@ class Environment(object):
             sh.sudo.mount('-o', 'loop,ro', image_path, image_mount_point)
             if not os.path.exists('{0}/etc/passwd'.format(
                     image_mount_point)):
-                raise Exception('Mounting of image did not happen')
+                raise errors.ImageMountError()
         else:
-            raise Exception("There is no such file '{0}' in '{1}'".format(
-                            image_name, CONF.tenant_images_dir))
+            raise errors.ImageNotFound(image_name=image_name,
+                                       directory=CONF.tenant_images_dir)
         return url
 
     def _save_provision_json_for_node(self, deploy_config):
@@ -324,20 +326,19 @@ class Environment(object):
         rsync_ironic_section_name = 'ironic_rsync'
 
         if not utils._pid_of('rsync'):
-            raise Exception('No rsync process is running')
+            raise errors.RsyncProcessNotFound()
 
         if os.path.exists(rsync_config_path):
             cfg = utils.read_config(rsync_config_path)
         else:
-            raise Exception('No rsyncd config file found at {0}'.format(
-                rsync_config_path
-            ))
+            raise errors.RsyncConfigNotFound(path=rsync_config_path)
 
         if rsync_ironic_section_name in cfg.sections():
             self.rsync_dir = cfg.get(rsync_ironic_section_name, 'path')
         else:
-            raise Exception('There is no ironic section ({0}) in rsync '
-                            'config file'.format(rsync_ironic_section_name))
+            raise errors.RsyncIronicSectionNotFound(
+                section=rsync_ironic_section_name
+            )
 
     def _teardown_rsync(self):
         if self.image_mount_point:
