@@ -25,6 +25,7 @@ from oslo_config import cfg
 
 from ramdisk_func_test import base
 from ramdisk_func_test import conf
+from ramdisk_func_test import exception
 from ramdisk_func_test import utils
 
 
@@ -128,8 +129,7 @@ class Node(base.LibvirtBase):
             LOG.info("{0} end bareon log {0}".format("#"*40))
 
         if check_ret_code and ret_code:
-            raise Exception("bareon returned non-zero code: "
-                            "{0}".format(ret_code))
+            raise exception.NonZeroCmdRetCode(cmd=cmd, ret_code=ret_code)
 
         return out, ret_code
 
@@ -152,7 +152,8 @@ class Node(base.LibvirtBase):
                 return
             sleep(1)
 
-        raise Exception("Timeout expired")
+        raise exception.NodeCallbackTimeout(timeout=timeout,
+                                            node_name=self.name)
 
     @contextmanager
     def _connect_ssh(self):
