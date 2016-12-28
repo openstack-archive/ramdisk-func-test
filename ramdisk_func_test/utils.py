@@ -26,6 +26,7 @@ from time import sleep
 from oslo_config import cfg
 
 from ramdisk_func_test import conf
+from ramdisk_func_test import errors
 
 
 CONF = conf.CONF
@@ -98,7 +99,7 @@ def wait_net_service(ip, port, timeout, try_interval=2):
             s.close()
             return
 
-    raise Exception("Timeout expired")
+    raise errors.NetServiceStartTimeout(timeout=timeout, ip=ip, port=port)
 
 
 class FakeGlobalSectionHead(object):
