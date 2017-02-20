@@ -37,6 +37,7 @@ For POST requests:
 """
 
 import argparse
+import json
 import os
 import SimpleHTTPServer
 import SocketServer
@@ -45,6 +46,7 @@ import pkg_resources
 import signal
 import sys
 import re
+import tempfile
 
 from ramdisk_func_test import conf
 
@@ -71,30 +73,57 @@ class RequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_GET(self):
         LOG.info('Got GET request: %s', self.path)
         fake_check = re.match(r'/fake', self.path)
-        tenant_images_check = re.match(r'/tenant_images/(.*)$', self.path)
+        tenant_images_match = re.match(r'/tenant_images/(.*)$', self.path)
+        deploy_steps_match = re.match(
+            r'/v1/nodes/([^/]*)/vendor_passthru/deploy_steps', self.path)
 
         if fake_check is not None:
             LOG.info("This is 'fake' request.")
             self.path = os.path.join(self.ctx.htdocs, 'stubfile')
-        elif tenant_images_check is not None:
+        elif tenant_images_match is not None:
             LOG.info("This is 'tenant-images' request: %s", self.path)
-            tenant_image = tenant_images_check.group(1)
+            tenant_image = tenant_images_match.group(1)
             self.path = os.path.join(self.ctx.images_path, tenant_image)
+        elif deploy_steps_match is not None:
+            with open('{}.2.pub'.format(self.ctx.ssh_key)) as data:
+                ssh_key = data.read().rstrip()
+
+            data = {
+                'name': 'inject-ssh-keys',
+                'payload': {
+                    'ssh-keys': {
+                        'root': [ssh_key]
+                    }
+                }
+            }
+            tmp = tempfile.NamedTemporaryFile()
+            json.dump(data, tmp)
+            tmp.flush()
+
+            self.path = tmp.name
 
         return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
-        callback_check = re.search(
+        deploy_steps_match = re.match(
+            r'/v1/nodes/([^/]*)/vendor_passthru/deploy_steps', self.path)
+        callback_match = re.search(
             r'/v1/nodes/([^/]*)/vendor_passthru', self.path)
 
-        if callback_check is not None:
+        if deploy_steps_match is not None:
+            tmp = tempfile.NamedTemporaryFile()
+            json.dump({'url': None}, tmp)
+            tmp.flush()
+
+            self.path = tmp.name
+        elif callback_match is not None:
             callback_file_path = os.path.join(
-                CONF.ramdisk_func_test_workdir, callback_check.group(1),
+                CONF.ramdisk_func_test_workdir, callback_match.group(1),
                 'callback')
             open(callback_file_path, 'a').close()
             LOG.info("Got callback: %s", self.path)
+            self.path = os.path.join(self.ctx.htdocs, 'stubfile')
 
-        self.path = os.path.join(self.ctx.htdocs, 'stubfile')
         return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def send_head(self):
@@ -147,6 +176,7 @@ class Context(object):
     def __init__(self):
         self.images_path = CONF.tenant_images_dir
         self.htdocs = pkg_resources.resource_filename(__name__, 'data')
+        self.ssh_key = os.path.join(CONF.image_build_dir, CONF.ramdisk_key)
 
 
 def signal_term_handler(signal, frame):
