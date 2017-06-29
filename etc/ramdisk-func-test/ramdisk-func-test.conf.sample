@@ -1,5 +1,8 @@
 [DEFAULT]
 
+# Node domain type (qemu or kvm).
+#node_domain_type = kvm
+
 # Path where virtualized node disks will be stored
 #ramdisk_func_test_workdir = /tmp/ramdisk-func-test/
 
