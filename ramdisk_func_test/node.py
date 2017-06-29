@@ -31,6 +31,9 @@ from ramdisk_func_test import utils
 
 CONF = conf.CONF
 CONF.register_opts([
+    cfg.StrOpt('node_domain_type',
+               help='Node domain type (qemu or kvm).',
+               default='kvm'),
     cfg.IntOpt('node_boot_timeout',
                help='Time to wait slave node to boot (seconds)',
                default=360),
@@ -58,6 +61,7 @@ class Node(base.LibvirtBase):
         self.console_log = os.path.join(self.workdir, "console.log")
 
         xml = self.jinja_env.get_template(template).render(
+            domain_type=CONF.node_domain_type,
             mac_addr=self.mac,
             network_name=network,
             node_name=self.name,
