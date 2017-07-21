@@ -18,15 +18,11 @@ import os
 import logging
 import shutil
 import random
-import socket
 from subprocess import check_output
-from time import time
-from time import sleep
 
 from oslo_config import cfg
 
 from ramdisk_func_test import conf
-from ramdisk_func_test import exception
 
 
 CONF = conf.CONF
@@ -75,31 +71,6 @@ def copy_file(source_file, dest_dir):
 def get_random_mac():
     rnd = lambda: random.randint(0, 255)
     return "52:54:00:%02x:%02x:%02x" % (rnd(), rnd(), rnd())
-
-
-def wait_net_service(ip, port, timeout, try_interval=2):
-    """Wait for network service to appear"""
-    LOG.info("Waiting for IP {0} port {1} to start".format(ip, port))
-    s = socket.socket()
-    s.settimeout(try_interval)
-    end = time() + timeout
-    while time() < end:
-        try:
-            s.connect((ip, port))
-        except socket.timeout:
-            # cannot connect after timeout
-            continue
-        except socket.error:
-            # cannot connect immediately (e.g. no route)
-            # wait timeout before next try
-            sleep(try_interval)
-            continue
-        else:
-            # success!
-            s.close()
-            return
-
-    raise exception.NetServiceStartTimeout(timeout=timeout, ip=ip, port=port)
 
 
 class FakeGlobalSectionHead(object):
