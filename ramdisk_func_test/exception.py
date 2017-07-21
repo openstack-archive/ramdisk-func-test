@@ -63,9 +63,9 @@ class TimeoutException(RamDiskTestException):
     _msg = "Timeout expired."
 
 
-class NetServiceStartTimeout(TimeoutException):
-    _msg = ("Timeout %(timeout)ss for waiting for IP %(ip)s port %(port)s "
-            "to start expired.")
+class NodeBootTimeout(TimeoutException):
+    _msg = ("Waiting for node %(node_name)s to boot exceeded timeout "
+            "%(timeout)ss.")
 
 
 class NodeCallbackTimeout(TimeoutException):
