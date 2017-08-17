@@ -140,7 +140,21 @@ class Node(base.LibvirtBase):
     def wait_for_boot(self):
         LOG.info("Waiting {0} node to boot".format(
             self.name))
-        utils.wait_net_service(self.ip, 22, timeout=CONF.node_boot_timeout)
+        timeout = CONF.node_boot_timeout
+        end = time() + timeout
+
+        while time() < end:
+            try:
+                self.run_cmd('ls')  # dummy cmd to check connection
+                return
+            except(paramiko.ssh_exception.NoValidConnectionsError,
+                   paramiko.ssh_exception.SSHException):
+                pass
+
+            sleep(1)
+
+        raise exception.NodeSSHTimeout(timeout=timeout,
+                                       node_name=self.name)
 
     def wait_for_callback(self):
 
