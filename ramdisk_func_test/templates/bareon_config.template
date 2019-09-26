@@ -1,5 +1,0 @@
-default deploy
-label deploy
-kernel {{ kernel }}
-append initrd={{ ramdisk }} deployment_id={{ deployment_id }} ironic_api_url=http://{{ network.address }}:{{ stub_server_port }} rootdelay=15 text nofb nomodeset vga=normal
-ipappend 2
